@@ -14,6 +14,11 @@ public:
   static vtkF3DGLXRenderWindow* New();
   vtkTypeMacro(vtkF3DGLXRenderWindow, vtkXOpenGLRenderWindow);
 
+  /**
+   * Render at the size of one eye when the window holds a stereo pair.
+   */
+  void Start() override;
+
 protected:
   vtkF3DGLXRenderWindow();
   ~vtkF3DGLXRenderWindow() override;
