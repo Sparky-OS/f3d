@@ -372,6 +372,20 @@ Set the color of grid lines.
 
 CLI: `--grid-color`.
 
+### `render.stereo` (_bool_, default: `false`)
+
+Render the scene in quad-buffer stereo, one image for the left eye and one for the right eye.
+It needs a stereo capable display and is read before the first render.
+
+CLI: `--stereo`.
+
+### `render.stereo_eye_angle` (_double_, default: `2.0`)
+
+Set the angle between the two eyes' lines of sight, in degrees.
+The eyes stay parallel and meet at the focal distance, so the separation grows with the distance to the focal point.
+
+CLI: `--stereo-eye-angle`.
+
 ### `render.axes_grid` (_bool_, default: `false`)
 
 Show _axes grid_ in the scene.
