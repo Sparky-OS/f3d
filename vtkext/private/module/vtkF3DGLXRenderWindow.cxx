@@ -23,6 +23,24 @@ vtkF3DGLXRenderWindow::vtkF3DGLXRenderWindow() = default;
 vtkF3DGLXRenderWindow::~vtkF3DGLXRenderWindow() = default;
 
 //------------------------------------------------------------------------------
+void vtkF3DGLXRenderWindow::Start()
+{
+  // The X window of a declared stereo window holds both eyes side by side, so it is twice as wide
+  // as one eye, and only the GLX drawable reports the size of one eye
+  if (this->StereoRender && this->WindowId)
+  {
+    unsigned int width = 0;
+    glXQueryDrawable(this->DisplayId, this->WindowId, GLX_WIDTH, &width);
+    if (width > 0 && static_cast<int>(width) != this->Size[0])
+    {
+      this->vtkRenderWindow::SetSize(static_cast<int>(width), this->Size[1]);
+    }
+  }
+
+  this->Superclass::Start();
+}
+
+//------------------------------------------------------------------------------
 vtkF3DGLXRenderWindow* vtkF3DGLXRenderWindow::New()
 {
 #if VTK_VERSION_NUMBER >= VTK_VERSION_CHECK(9, 5, 20251009)
