@@ -2183,9 +2183,23 @@ void vtkF3DRenderer::Render()
     this->UpdateNormalGlyphsScale();
   }
 
+  // VTK only applies the stereo shear of the camera in vtkOpenGLCamera::Render, which the render
+  // passes do not call, so set the shear of each eye here, as vtkCamera does with its eye angle
+  vtkCamera* camera = this->GetActiveCamera();
+  const bool stereo = this->GetRenderWindow()->GetStereoRender();
+  if (stereo)
+  {
+    const double shear = std::tan(vtkMath::RadiansFromDegrees(camera->GetEyeAngle() / 2.0));
+    camera->SetViewShear(camera->GetLeftEye() ? -shear : shear, 0.0, 1.0);
+  }
+
   if (!this->TimerVisible)
   {
     this->Superclass::Render();
+    if (stereo)
+    {
+      camera->SetViewShear(0.0, 0.0, 1.0);
+    }
     return;
   }
 
@@ -2200,6 +2214,11 @@ void vtkF3DRenderer::Render()
 #endif
 
   this->Superclass::Render();
+
+  if (stereo)
+  {
+    camera->SetViewShear(0.0, 0.0, 1.0);
+  }
 
   auto cpuElapsed = std::chrono::high_resolution_clock::now() - cpuStart;
 
