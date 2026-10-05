@@ -36,6 +36,14 @@
     }
   },
   "render": {
+    "stereo": {
+      "type": "bool",
+      "default_value": "false"
+    },
+    "stereo_eye_angle": {
+      "type": "double",
+      "default_value": "2.0"
+    },
     "show_edges": {
       "type": "bool"
     },

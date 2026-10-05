@@ -231,6 +231,17 @@
           "implicitValue": "1"
         },
         {
+          "longName": "stereo",
+          "helpText": "Enable stereo rendering",
+          "valueHelper": "<bool>",
+          "implicitValue": "1"
+        },
+        {
+          "longName": "stereo-eye-angle",
+          "helpText": "Stereo camera eye angle in degrees",
+          "valueHelper": "<value>"
+        },
+        {
           "longName": "armature",
           "helpText": "Enable armature visualization",
           "valueHelper": "<bool>",

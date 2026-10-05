@@ -404,6 +404,26 @@ void window_impl::UpdateDynamicOptions()
 
   const options& opt = this->Internals->Options;
 
+  // The window is realized when the engine is created, before the options are known, and a stereo
+  // capable window can only be requested before it is realized, so it is recreated once
+  vtkRenderWindow* renWin = this->Internals->RenWin;
+  if (opt.render.stereo && !renWin->GetOffScreenRendering())
+  {
+    if (renWin->GetNeverRendered() && !renWin->GetStereoCapableWindow())
+    {
+      vtkRenderWindowInteractor* iren = renWin->GetInteractor();
+      renWin->Finalize();
+      renWin->SetStereoCapableWindow(1);
+      renWin->SetStereoTypeToCrystalEyes();
+      renWin->SetStereoRender(1);
+      if (iren)
+      {
+        iren->ReInitialize();
+      }
+    }
+    renderer->GetActiveCamera()->SetEyeAngle(opt.render.stereo_eye_angle);
+  }
+
   // Update pending up direction if changed
   renderer->SetPendingUpDirection(opt.scene.up_direction);
 
