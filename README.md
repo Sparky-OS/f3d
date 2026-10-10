@@ -1,3 +1,28 @@
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/sparky-stereo-os/sparkyos-swirl-light-128.png">
+  <img src=".github/sparky-stereo-os/sparkyos-swirl-dark-128.png" alt="SparkyOS" width="128" height="128">
+</picture>
+
+## Sparky Stereo OS
+
+This is the stereo version of F3D by Sparky Stereo OS, forked from [f3d-app/f3d](https://github.com/f3d-app/f3d).
+`--stereo` (`render.stereo`) renders the scene for each eye, one world and two cameras, into an OpenGL quad-buffer stereo window at the size of one eye.
+Without the option nothing changes; on Sparky Stereo OS the desktop shows the stereo window on any 3D display.
+
+Where it comes from:
+
+- [F3D](https://f3d.app/) is made by the F3D-APP Foundation; it was created at Kitware SAS by Joachim Pouderoux, Michael Migliore and Mathieu Westphal (its README).
+- [Debian](https://www.debian.org/) is the base of the system.
+- [SparkyLinux](https://sparkylinux.org/), by Paweł "pavroo" Pijanowski, builds on Debian.
+- [Sparky Stereo OS](https://github.com/Sparky-OS/sparky-stereo-os) is the stereo 3D edition of SparkyLinux: SparkyOS, powered by Debian.
+
+The `stereo3d` branch holds this work on F3D 3.5.0, the version Debian ships.
+The licence is unchanged; see [LICENSE.md](LICENSE.md).
+
+Sparky Stereo OS, Daniel Ramos's edition of SparkyLinux (by Paweł "pavroo" Pijanowski).
+
+---
+
 [![CI](https://img.shields.io/github/actions/workflow/status/f3d-app/f3d/ci.yml?label=CI&logo=github)](https://github.com/f3d-app/f3d/actions/workflows/ci.yml) [![Packaging](https://img.shields.io/github/actions/workflow/status/f3d-app/f3d-superbuild/nightly.yml?label=Packaging&logo=github)](https://github.com/f3d-app/f3d-superbuild) [![codecov](https://codecov.io/gh/f3d-app/f3d/branch/master/graph/badge.svg?token=siwG82IXK7)](https://codecov.io/gh/f3d-app/f3d) [![Downloads](https://img.shields.io/github/downloads/f3d-app/f3d/total.svg)](https://github.com/f3d-app/f3d/releases) [![Sponsors](https://img.shields.io/static/v1?label=Sponsor&message=%E2%9D%A4&logo=GitHub&color=%23fe8e86)](https://f3d.app/thanks) [![Discord](https://discordapp.com/api/guilds/1046005690809978911/widget.png?style=shield)](https://discord.f3d.app) [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
 
 # F3D - Fast and minimalist 3D viewer
