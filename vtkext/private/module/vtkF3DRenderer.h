@@ -529,6 +529,12 @@ public:
    * Set/Get the total application time in seconds
    */
   vtkSetMacro(TotalTime, double);
+
+  /**
+   * The eye the next render is for: -1 the left eye, 1 the right eye, 0 the buffer VTK draws into.
+   */
+  vtkSetMacro(StereoEye, int);
+  vtkGetMacro(StereoEye, int);
   vtkGetMacro(TotalTime, double);
   //@}
 
@@ -688,6 +694,7 @@ private:
   vtkSmartPointer<vtkCallbackCommand> ModernAxisWidgetResizeCallback;
   double ModernAxisBackdropOpacity = 0.0;
   double TotalTime = 0.0;
+  int StereoEye = 0;
 
   // Does vtk version support GridAxesActor
 #if VTK_VERSION_NUMBER >= VTK_VERSION_CHECK(9, 4, 20250513)
