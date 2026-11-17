@@ -535,6 +535,20 @@ public:
    */
   vtkSetMacro(StereoEye, int);
   vtkGetMacro(StereoEye, int);
+
+  /**
+   * The angle between the eyes' lines of sight in degrees, for a program that wants its own value.
+   * Zero (the default) takes the separation from the window's depth limits (the person's).
+   */
+  vtkSetMacro(StereoEyeAngle, double);
+  vtkGetMacro(StereoEyeAngle, double);
+
+  /**
+   * The state of the depth limits of the last stereo render: 0 delivered, 1 not offered, 2 not
+   * delivered yet, 3 not readable (an image, or a window that is not an X11 window), -1 no stereo
+   * render yet or an angle was given. Reading it polls the window.
+   */
+  int PollStereoDepthLimits();
   vtkGetMacro(TotalTime, double);
   //@}
 
@@ -695,6 +709,14 @@ private:
   double ModernAxisBackdropOpacity = 0.0;
   double TotalTime = 0.0;
   int StereoEye = 0;
+  double StereoEyeAngle = 0.0;
+  int StereoDepthState = -1;
+
+  /**
+   * The half tangent of the eye angle, from the person's limits: the largest separation under
+   * which the farthest and the nearest point of the scene stay inside the sunk and popped limits.
+   */
+  double ComputeStereoShear();
 
   // Does vtk version support GridAxesActor
 #if VTK_VERSION_NUMBER >= VTK_VERSION_CHECK(9, 4, 20250513)

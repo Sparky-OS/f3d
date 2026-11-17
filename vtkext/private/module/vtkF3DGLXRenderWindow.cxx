@@ -1,6 +1,8 @@
 #include <vtkObjectFactory.h>
 #include <vtkVersion.h>
 
+#include <cerrno>
+
 #if VTK_VERSION_NUMBER >= VTK_VERSION_CHECK(9, 3, 20240914)
 #include <vtk_glad.h>
 #include <vtkglad/include/glad/glx.h>
@@ -9,6 +11,10 @@
 #endif
 
 #include "vtkF3DGLXRenderWindow.h"
+
+#ifdef F3D_WITH_STEREO_DECLARE
+#include <stereo-declare.h>
+#endif
 
 #if VTK_VERSION_NUMBER >= VTK_VERSION_CHECK(9, 5, 20251009)
 #include "vtkX11Functions.h"
@@ -38,6 +44,38 @@ void vtkF3DGLXRenderWindow::Start()
   }
 
   this->Superclass::Start();
+}
+
+//------------------------------------------------------------------------------
+int vtkF3DGLXRenderWindow::UpdateStereoDepthLimits()
+{
+#ifdef F3D_WITH_STEREO_DECLARE
+  if (!this->DisplayId || !this->WindowId)
+  {
+    this->StereoDepthState = 3;
+    return this->StereoDepthState;
+  }
+  stereo_depth_limits limits;
+  const int r = stereo_depth_x11_get_limits(this->DisplayId, this->WindowId, &limits);
+  if (r == 0)
+  {
+    this->StereoDepthSunk = limits.sunk;
+    this->StereoDepthPopped = limits.popped;
+    this->StereoDepthState = 0;
+  }
+  else if (r == -ENODATA)
+  {
+    this->StereoDepthState = 2;
+  }
+  else
+  {
+    // -ENOTSUP, or a property that is not the limits: never zeros, never a guess
+    this->StereoDepthState = 1;
+  }
+#else
+  this->StereoDepthState = 3;
+#endif
+  return this->StereoDepthState;
 }
 
 //------------------------------------------------------------------------------

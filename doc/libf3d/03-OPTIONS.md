@@ -380,10 +380,12 @@ With an offscreen window `renderToImage` returns the two eyes side by side, the 
 
 CLI: `--stereo`.
 
-### `render.stereo_eye_angle` (_double_, default: `2.0`)
+### `render.stereo_eye_angle` (_double_, default: `0.0`)
 
-Set the angle between the two eyes' lines of sight, in degrees.
+Set the angle between the two eyes' lines of sight, in degrees, for a program that wants its own value.
 The eyes stay parallel and meet at the focal distance, so the separation grows with the distance to the focal point.
+Zero, the default, takes the separation from the person's depth limits of a stereo window (`window::pollStereoDepth`): the largest separation under which the farthest and the nearest point of the scene stay inside the sunk and popped limits.
+With no limits (an image, a compositor that offers none, limits not delivered yet) the two eyes are the same picture.
 
 CLI: `--stereo-eye-angle`.
 

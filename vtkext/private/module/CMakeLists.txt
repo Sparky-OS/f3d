@@ -115,6 +115,11 @@ endif()
 # only exported starting from VTK 9.4
 if(UNIX AND NOT APPLE AND NOT EMSCRIPTEN AND NOT ANDROID)
   list(APPEND classes vtkF3DGLXRenderWindow)
+  option(F3D_WITH_STEREO_DECLARE "Read the depth limits of a stereo window through libstereo-declare 1.10" OFF)
+  if(F3D_WITH_STEREO_DECLARE)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(STEREO_DECLARE REQUIRED IMPORTED_TARGET stereo-declare>=1.10.0)
+  endif()
 endif()
 
 if(VTK_OPENGL_HAS_EGL)
@@ -154,6 +159,12 @@ vtk_module_add_module(f3d::vtkextPrivate
 
 if(MSVC)
   vtk_module_definitions(f3d::vtkextPrivate PRIVATE _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS _CRT_SECURE_NO_WARNINGS)
+endif()
+
+# libstereo-declare
+if(F3D_WITH_STEREO_DECLARE)
+  vtk_module_link(f3d::vtkextPrivate PRIVATE PkgConfig::STEREO_DECLARE)
+  vtk_module_definitions(f3d::vtkextPrivate PRIVATE F3D_WITH_STEREO_DECLARE)
 endif()
 
 # exr

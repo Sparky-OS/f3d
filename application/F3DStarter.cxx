@@ -2095,6 +2095,30 @@ bool F3DStarter::LoadRelativeFileGroup(int index, bool restoreCamera, bool force
 //----------------------------------------------------------------------------
 void F3DStarter::EventLoop()
 {
+  // The person's depth limits come from the desktop and can change while the window is open: render
+  // again when they do, and say once when the two eyes are the same picture for want of them
+  {
+    f3d::window& window = this->Internals->Engine->getWindow();
+    bool changed = false;
+    const auto state = window.pollStereoDepth(changed);
+    if (changed)
+    {
+      this->Internals->Engine->getInteractor().requestRender();
+      using state_t = f3d::window::stereo_depth_state;
+      if (state == state_t::NOT_OFFERED)
+      {
+        f3d::log::warn(F3DSparkyStrings::Text(F3DSparkyStrings::DepthNotOffered));
+      }
+      else if (state == state_t::NOT_DELIVERED)
+      {
+        f3d::log::info(F3DSparkyStrings::Text(F3DSparkyStrings::DepthNotDelivered));
+      }
+      else if (state == state_t::NOT_READABLE)
+      {
+        f3d::log::warn(F3DSparkyStrings::Text(F3DSparkyStrings::DepthNotReadable));
+      }
+    }
+  }
   if (this->Internals->ReloadFileRequested)
   {
     this->LoadRelativeFileGroup(0, true, true);

@@ -65,6 +65,29 @@ public:
   [[nodiscard]] virtual bool isStereo() = 0;
 
   /**
+   * The state of the person's depth limits for a stereo window whose eye angle is not given
+   * (render.stereo_eye_angle is zero): the desktop (Stereo KWin) hands them over per window and
+   * the separation of the two eyes follows them.
+   * UNUSED: no stereo window, or an angle was given. DELIVERED: the limits are in use.
+   * NOT_OFFERED: the compositor offers no limits. NOT_DELIVERED: offered, not delivered yet.
+   * NOT_READABLE: this window or build cannot read them. In the last three the two eyes are the same picture.
+   */
+  enum class stereo_depth_state
+  {
+    UNUSED,
+    DELIVERED,
+    NOT_OFFERED,
+    NOT_DELIVERED,
+    NOT_READABLE
+  };
+
+  /**
+   * Poll the depth limits of the window (one property read). Sets changed when the state or the
+   * limits are not what the previous call returned, so a program can render again and say why.
+   */
+  [[nodiscard]] virtual stereo_depth_state pollStereoDepth(bool& changed) = 0;
+
+  /**
    * Get the camera provided by the window.
    */
   [[nodiscard]] virtual camera& getCamera() = 0;

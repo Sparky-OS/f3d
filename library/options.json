@@ -42,7 +42,7 @@
     },
     "stereo_eye_angle": {
       "type": "double",
-      "default_value": "2.0"
+      "default_value": "0.0"
     },
     "show_edges": {
       "type": "bool"

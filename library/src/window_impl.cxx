@@ -108,6 +108,9 @@ public:
   vtkSmartPointer<vtkRenderWindow> RenWin;
   vtkNew<vtkF3DRenderer> Renderer;
   const options& Options;
+  window::stereo_depth_state DepthState = window::stereo_depth_state::UNUSED;
+  double DepthSunk = 0.0;
+  double DepthPopped = 0.0;
   interactor_impl* Interactor = nullptr;
   fs::path CachePath;
   context::function GetProcAddress;
@@ -269,6 +272,52 @@ bool window_impl::isStereo()
   vtkRenderWindow* renWin = this->Internals->RenWin;
   return this->Internals->Options.render.stereo &&
     (renWin->GetOffScreenRendering() || (renWin->GetStereoCapableWindow() && renWin->GetStereoRender()));
+}
+
+//----------------------------------------------------------------------------
+window::stereo_depth_state window_impl::pollStereoDepth(bool& changed)
+{
+  changed = false;
+  vtkRenderWindow* renWin = this->Internals->RenWin;
+  vtkF3DRenderer* renderer = this->Internals->Renderer;
+  stereo_depth_state state = stereo_depth_state::UNUSED;
+  double sunk = 0.0;
+  double popped = 0.0;
+  if (this->Internals->Options.render.stereo && renWin->GetStereoCapableWindow() &&
+    renWin->GetStereoRender() && this->Internals->Options.render.stereo_eye_angle == 0.0)
+  {
+    switch (renderer->PollStereoDepthLimits())
+    {
+      case 0:
+        state = stereo_depth_state::DELIVERED;
+#ifdef VTK_USE_X
+        if (auto* glx = vtkF3DGLXRenderWindow::SafeDownCast(renWin))
+        {
+          sunk = glx->GetStereoDepthSunk();
+          popped = glx->GetStereoDepthPopped();
+        }
+#endif
+        break;
+      case 1:
+        state = stereo_depth_state::NOT_OFFERED;
+        break;
+      case 2:
+        state = stereo_depth_state::NOT_DELIVERED;
+        break;
+      default:
+        state = stereo_depth_state::NOT_READABLE;
+        break;
+    }
+  }
+  if (state != this->Internals->DepthState || sunk != this->Internals->DepthSunk ||
+    popped != this->Internals->DepthPopped)
+  {
+    changed = true;
+  }
+  this->Internals->DepthState = state;
+  this->Internals->DepthSunk = sunk;
+  this->Internals->DepthPopped = popped;
+  return state;
 }
 
 //----------------------------------------------------------------------------
@@ -434,13 +483,13 @@ void window_impl::UpdateDynamicOptions()
     {
       // 3D can be switched on and off while the window runs: off draws one picture into both eyes
       renWin->SetStereoRender(opt.render.stereo ? 1 : 0);
-      renderer->GetActiveCamera()->SetEyeAngle(opt.render.stereo_eye_angle);
+      renderer->SetStereoEyeAngle(opt.render.stereo_eye_angle);
     }
   }
   else if (opt.render.stereo)
   {
     // An image has no stereo capable window: renderToImage draws the two eyes one after the other
-    renderer->GetActiveCamera()->SetEyeAngle(opt.render.stereo_eye_angle);
+    renderer->SetStereoEyeAngle(opt.render.stereo_eye_angle);
   }
 
   // Update pending up direction if changed

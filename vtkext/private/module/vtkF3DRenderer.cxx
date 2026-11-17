@@ -34,7 +34,15 @@
 #include <vtkLight.h>
 #include <vtkLightCollection.h>
 #include <vtkLightKit.h>
+#include <algorithm>
+#include <cmath>
+#include <limits>
 #include <vtkMath.h>
+#include <vtkRenderingOpenGLConfigure.h>
+
+#ifdef VTK_USE_X
+#include "vtkF3DGLXRenderWindow.h"
+#endif
 #include <vtkMathUtilities.h>
 #include <vtkMatrix4x4.h>
 #include <vtkMultiBlockDataSet.h>
@@ -2176,6 +2184,124 @@ void vtkF3DRenderer::UpdateActors()
 }
 
 //----------------------------------------------------------------------------
+int vtkF3DRenderer::PollStereoDepthLimits()
+{
+  if (this->StereoEyeAngle != 0.0)
+  {
+    this->StereoDepthState = -1;
+    return this->StereoDepthState;
+  }
+#ifdef VTK_USE_X
+  vtkF3DGLXRenderWindow* glx = vtkF3DGLXRenderWindow::SafeDownCast(this->GetRenderWindow());
+  this->StereoDepthState = glx ? glx->UpdateStereoDepthLimits() : 3;
+#else
+  this->StereoDepthState = 3;
+#endif
+  return this->StereoDepthState;
+}
+
+//----------------------------------------------------------------------------
+double vtkF3DRenderer::ComputeStereoShear()
+{
+  if (this->StereoEyeAngle != 0.0)
+  {
+    return std::tan(vtkMath::RadiansFromDegrees(this->StereoEyeAngle / 2.0));
+  }
+
+  // No separation of our own: the person's limits decide, and with none the two eyes are the same
+  // picture (the state says why, the program tells the person)
+  if (this->PollStereoDepthLimits() != 0)
+  {
+    return 0.0;
+  }
+#ifdef VTK_USE_X
+  vtkF3DGLXRenderWindow* glx = vtkF3DGLXRenderWindow::SafeDownCast(this->GetRenderWindow());
+#else
+  return 0.0;
+#endif
+  const int* size = this->GetRenderWindow()->GetSize();
+  const double width = size[0];  // one eye, in pixels
+  const double height = size[1];
+  if (width <= 0 || height <= 0)
+  {
+    return 0.0;
+  }
+  // the limits are pixels of a view 1920 wide
+#ifdef VTK_USE_X
+  const double sunk = glx->GetStereoDepthSunk() * width / 1920.0;
+  const double popped = glx->GetStereoDepthPopped() * width / 1920.0;
+#else
+  const double sunk = 0.0, popped = 0.0;
+#endif
+
+  vtkCamera* camera = this->GetActiveCamera();
+  double bounds[6];
+  this->ComputeVisiblePropBounds(bounds);
+  if (!vtkMath::AreBoundsInitialized(bounds))
+  {
+    return 0.0;
+  }
+  double position[3], focal[3], direction[3];
+  camera->GetPosition(position);
+  camera->GetFocalPoint(focal);
+  vtkMath::Subtract(focal, position, direction);
+  const double focalDistance = vtkMath::Norm(direction);
+  if (focalDistance <= 0)
+  {
+    return 0.0;
+  }
+  vtkMath::MultiplyScalar(direction, 1.0 / focalDistance);
+
+  // the depth of the scene along the view direction: its box in the camera's space
+  double zMin = std::numeric_limits<double>::max();
+  double zMax = std::numeric_limits<double>::lowest();
+  for (int i = 0; i < 8; i++)
+  {
+    const double corner[3] = { bounds[i & 1], bounds[2 + ((i >> 1) & 1)], bounds[4 + ((i >> 2) & 1)] };
+    double d[3];
+    vtkMath::Subtract(corner, position, d);
+    const double z = vtkMath::Dot(d, direction);
+    zMin = std::min(zMin, z);
+    zMax = std::max(zMax, z);
+  }
+
+  // disparity of a point at depth z, in pixels, left minus right: the far side is sunk (at most
+  // the sunk limit), the near side popped (at most the popped limit). The shear is t = tan(angle / 2).
+  // perspective: d = 2 t F (1 - f / z), F = height / (2 tan(view angle / 2)); parallel: d = 2 t (z - f) height / (2 scale)
+  double farTerm = 0.0, nearTerm = 0.0;
+  double pixelsPerT = 0.0;
+  if (camera->GetParallelProjection())
+  {
+    pixelsPerT = height / camera->GetParallelScale();  // 2 t (z - f) * height / (2 scale)
+    farTerm = zMax - focalDistance;
+    nearTerm = focalDistance - zMin;
+  }
+  else
+  {
+    const double fPixels = height / (2.0 * std::tan(vtkMath::RadiansFromDegrees(camera->GetViewAngle() / 2.0)));
+    pixelsPerT = 2.0 * fPixels;
+    const double zNear = std::max(zMin, std::max(camera->GetClippingRange()[0], 1e-6 * focalDistance));
+    farTerm = zMax > focalDistance ? 1.0 - focalDistance / zMax : 0.0;
+    nearTerm = zMin < focalDistance ? focalDistance / zNear - 1.0 : 0.0;
+  }
+  double t = std::numeric_limits<double>::infinity();
+  if (farTerm > 0.0)
+  {
+    t = std::min(t, sunk / (pixelsPerT * farTerm));
+  }
+  if (nearTerm > 0.0)
+  {
+    t = std::min(t, popped / (pixelsPerT * nearTerm));
+  }
+  if (!std::isfinite(t))
+  {
+    // a scene flat at the focal plane has no depth to limit: infinity sinks the sunk limit
+    t = camera->GetParallelProjection() ? 0.0 : sunk / pixelsPerT;
+  }
+  return t;
+}
+
+//----------------------------------------------------------------------------
 void vtkF3DRenderer::Render()
 {
   if (this->UseNormalGlyphs)
@@ -2196,7 +2322,7 @@ void vtkF3DRenderer::Render()
     {
       eye = camera->GetLeftEye() ? -1 : 1;
     }
-    const double shear = std::tan(vtkMath::RadiansFromDegrees(camera->GetEyeAngle() / 2.0));
+    const double shear = this->ComputeStereoShear();
     camera->SetViewShear(eye < 0 ? -shear : shear, 0.0, 1.0);
   }
 
