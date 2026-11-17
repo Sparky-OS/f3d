@@ -272,7 +272,10 @@ void vtkF3DRenderPass::Render(const vtkRenderState* s)
 
   vtkRenderer* r = s->GetRenderer();
   vtkInformation* info = r->GetInformation();
-  bool uiOnly = info->Has(vtkF3DRenderPass::RENDER_UI_ONLY());
+  // A UI only frame draws the interface over the layers of the last frame, which hold one eye: with
+  // two eyes the scene is drawn again, so that each eye keeps its own picture
+  bool uiOnly =
+    info->Has(vtkF3DRenderPass::RENDER_UI_ONLY()) && !r->GetRenderWindow()->GetStereoRender();
 
   r->GetBackground(bgColor);
 
