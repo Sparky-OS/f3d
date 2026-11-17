@@ -376,6 +376,7 @@ CLI: `--grid-color`.
 
 Render the scene in quad-buffer stereo, one image for the left eye and one for the right eye.
 It needs a stereo capable display and is read before the first render.
+With an offscreen window `renderToImage` returns the two eyes side by side, the left eye first, each as wide as the window.
 
 CLI: `--stereo`.
 

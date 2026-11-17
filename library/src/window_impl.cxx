@@ -15,6 +15,7 @@
 #include "vtkF3DNoRenderWindow.h"
 #include "vtkF3DRenderer.h"
 
+#include <algorithm>
 #include <vtkCamera.h>
 #include <vtkF3DRenderPass.h>
 #include <vtkImageData.h>
@@ -423,6 +424,11 @@ void window_impl::UpdateDynamicOptions()
     }
     renderer->GetActiveCamera()->SetEyeAngle(opt.render.stereo_eye_angle);
   }
+  else if (opt.render.stereo)
+  {
+    // An image has no stereo capable window: renderToImage draws the two eyes one after the other
+    renderer->GetActiveCamera()->SetEyeAngle(opt.render.stereo_eye_angle);
+  }
 
   // Update pending up direction if changed
   renderer->SetPendingUpDirection(opt.scene.up_direction);
@@ -748,6 +754,36 @@ bool window_impl::render()
 
 //----------------------------------------------------------------------------
 image window_impl::renderToImage(bool noBackground)
+{
+  const bool eyes = this->Internals->Options.render.stereo && this->Internals->RenWin->GetOffScreenRendering();
+  if (!eyes)
+  {
+    return this->renderOneImage(noBackground);
+  }
+
+  // The two eyes side by side, the left eye first, each in its own half of the width
+  vtkF3DRenderer* renderer = this->Internals->Renderer;
+  renderer->SetStereoEye(-1);
+  image left = this->renderOneImage(noBackground);
+  renderer->SetStereoEye(1);
+  image right = this->renderOneImage(noBackground);
+  renderer->SetStereoEye(0);
+
+  const unsigned int width = left.getWidth();
+  const unsigned int height = left.getHeight();
+  const unsigned int cmp = left.getChannelCount();
+  image both(2 * width, height, cmp);
+  for (unsigned int y = 0; y < height; y++)
+  {
+    unsigned char* row = static_cast<unsigned char*>(both.getContent()) + static_cast<size_t>(y) * 2 * width * cmp;
+    std::copy_n(static_cast<const unsigned char*>(left.getContent()) + static_cast<size_t>(y) * width * cmp, static_cast<size_t>(width) * cmp, row);
+    std::copy_n(static_cast<const unsigned char*>(right.getContent()) + static_cast<size_t>(y) * width * cmp, static_cast<size_t>(width) * cmp, row + static_cast<size_t>(width) * cmp);
+  }
+  return both;
+}
+
+//----------------------------------------------------------------------------
+image window_impl::renderOneImage(bool noBackground)
 {
   this->render();
 

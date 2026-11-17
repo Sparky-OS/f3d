@@ -51,6 +51,7 @@ public:
   camera& getCamera() override;
   bool render() override;
   image renderToImage(bool noBackground = false) override;
+  image renderOneImage(bool noBackground);
   int getWidth() const override;
   int getHeight() const override;
   window& setSize(int width, int height) override;
