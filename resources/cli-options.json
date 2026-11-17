@@ -232,14 +232,9 @@
         },
         {
           "longName": "stereo",
-          "helpText": "Enable stereo rendering",
+          "helpText": "Enable 3D: draw the two eyes as one full side-by-side picture for the compositor",
           "valueHelper": "<bool>",
           "implicitValue": "1"
-        },
-        {
-          "longName": "stereo-eye-angle",
-          "helpText": "Stereo camera eye angle in degrees",
-          "valueHelper": "<value>"
         },
         {
           "longName": "armature",

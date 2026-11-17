@@ -264,6 +264,14 @@ window_impl::Type window_impl::getType()
 }
 
 //----------------------------------------------------------------------------
+bool window_impl::isStereo()
+{
+  vtkRenderWindow* renWin = this->Internals->RenWin;
+  return this->Internals->Options.render.stereo &&
+    (renWin->GetOffScreenRendering() || (renWin->GetStereoCapableWindow() && renWin->GetStereoRender()));
+}
+
+//----------------------------------------------------------------------------
 bool window_impl::isOffscreen()
 {
   return !this->Internals->RenWin->GetShowWindow();
@@ -408,9 +416,9 @@ void window_impl::UpdateDynamicOptions()
   // The window is realized when the engine is created, before the options are known, and a stereo
   // capable window can only be requested before it is realized, so it is recreated once
   vtkRenderWindow* renWin = this->Internals->RenWin;
-  if (opt.render.stereo && !renWin->GetOffScreenRendering())
+  if (!renWin->GetOffScreenRendering())
   {
-    if (renWin->GetNeverRendered() && !renWin->GetStereoCapableWindow())
+    if (opt.render.stereo && renWin->GetNeverRendered() && !renWin->GetStereoCapableWindow())
     {
       vtkRenderWindowInteractor* iren = renWin->GetInteractor();
       renWin->Finalize();
@@ -422,7 +430,12 @@ void window_impl::UpdateDynamicOptions()
         iren->ReInitialize();
       }
     }
-    renderer->GetActiveCamera()->SetEyeAngle(opt.render.stereo_eye_angle);
+    if (renWin->GetStereoCapableWindow())
+    {
+      // 3D can be switched on and off while the window runs: off draws one picture into both eyes
+      renWin->SetStereoRender(opt.render.stereo ? 1 : 0);
+      renderer->GetActiveCamera()->SetEyeAngle(opt.render.stereo_eye_angle);
+    }
   }
   else if (opt.render.stereo)
   {

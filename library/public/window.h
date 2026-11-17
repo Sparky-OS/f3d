@@ -58,6 +58,13 @@ public:
   [[nodiscard]] virtual bool isOffscreen() = 0;
 
   /**
+   * Return true when the window draws the two eyes of a stereo pair (render.stereo is on and the
+   * window could be made stereo capable). Call it after a render: the window is made stereo capable
+   * when it is first rendered.
+   */
+  [[nodiscard]] virtual bool isStereo() = 0;
+
+  /**
    * Get the camera provided by the window.
    */
   [[nodiscard]] virtual camera& getCamera() = 0;

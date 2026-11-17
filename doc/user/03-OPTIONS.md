@@ -159,7 +159,6 @@ Set the color grid lines.
 
 Render the scene in quad-buffer stereo, one image for the left eye and one for the right eye. It needs a stereo capable display. The setting is read before the first render.
 
-### `--stereo-eye-angle=<degrees>` (_double_, default: `2.0`)
 
 Set the angle between the two eyes' lines of sight, in degrees. The eyes stay parallel and meet at the focal distance, so the separation grows with the distance to the focal point.
 

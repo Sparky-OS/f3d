@@ -48,6 +48,7 @@ public:
    */
   Type getType() override;
   bool isOffscreen() override;
+  bool isStereo() override;
   camera& getCamera() override;
   bool render() override;
   image renderToImage(bool noBackground = false) override;

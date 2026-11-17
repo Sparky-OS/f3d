@@ -8,6 +8,10 @@
 #include "F3DNSDelegate.h"
 #include "F3DOptionsTools.h"
 #include "F3DPluginsTools.h"
+#include "F3DSparkyStrings.h"
+
+#include <sys/wait.h>
+#include <unistd.h>
 #include "F3DSystemTools.h"
 
 #if F3D_MODULE_DMON
@@ -962,6 +966,8 @@ public:
       interactor.addBinding({ mod_t::NONE, "Up" }, "reload_current_file_group", "Others", std::bind(docString, "Reload current file group"));
       interactor.addBinding({ mod_t::NONE, "Down" }, "add_current_directories", "Others", std::bind(docString, "Add files from dir of current file"));
       interactor.addBinding({ mod_t::NONE, "F12" }, "take_screenshot", "Others", std::bind(docString, "Take a screenshot"));
+      interactor.addBinding({ mod_t::NONE, "F3" }, "toggle render.stereo", "Others", std::bind(docString, F3DSparkyStrings::Text(F3DSparkyStrings::Enable3D)));
+      interactor.addBinding({ mod_t::NONE, "F4" }, "display_settings", "Others", std::bind(docString, F3DSparkyStrings::Text(F3DSparkyStrings::DisplaySettings)));
 #if F3D_MODULE_TINYFILEDIALOGS
       interactor.addBinding({ mod_t::CTRL, "O" }, "open_file_dialog", "Others", std::bind(docString, "Open File Dialog"), f3d::interactor::BindingType::OTHER, true);
 #endif
@@ -1511,6 +1517,11 @@ int F3DStarter::Start(int argc, char** argv)
       {
         // Create the event loop repeating timer
         window.render();
+
+        if (this->Internals->LibOptions.render.stereo && !window.isStereo())
+        {
+          f3d::log::error(F3DSparkyStrings::Text(F3DSparkyStrings::NoStereoWindow));
+        }
 
         // gracefully exits if SIGTERM or SIGINT is send to F3D
         GlobalInteractor = &interactor;
@@ -2287,6 +2298,38 @@ void F3DStarter::AddCommands()
 
     return candidates;
   };
+
+  // The shortcut to the desktop's Display Settings, where the 3D screens and their depth are set
+  interactor.addCommand("display_settings",
+    [](const std::vector<std::string>&)
+    {
+      pid_t pid = fork();
+      if (pid == 0)
+      {
+        const char* args[] = { "kcmshell6", "kcm_kscreen", nullptr };
+        execvp(args[0], const_cast<char* const*>(args));
+        _exit(127);
+      }
+      if (pid < 0)
+      {
+        f3d::log::error(F3DSparkyStrings::Text(F3DSparkyStrings::DisplaySettingsFailed));
+        return;
+      }
+      // a short wait tells a missing program from a running one
+      for (int i = 0; i < 20; i++)
+      {
+        int status = 0;
+        if (waitpid(pid, &status, WNOHANG) == pid)
+        {
+          if (WIFEXITED(status) && WEXITSTATUS(status) == 127)
+          {
+            f3d::log::error(F3DSparkyStrings::Text(F3DSparkyStrings::DisplaySettingsFailed));
+          }
+          return;
+        }
+        usleep(10000);
+      }
+    });
 
   interactor.addCommand("print_config_info",
     [this](const std::vector<std::string>&)
