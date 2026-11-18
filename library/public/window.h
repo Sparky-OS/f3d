@@ -96,6 +96,20 @@ public:
   virtual window& setStereoImageEyeAngle(double degrees) = 0;
 
   /**
+   * Make the window a child of a window of the program's own (an X11 window id), so a program that shows the scene inside its own
+   * window (a Qt or GTK program: the 3D area of a viewer) owns the place and the size of the 3D area. Only a GLX window takes it;
+   * set it before the first render, or the window is created again once. The window is then positioned with setPosition()
+   * relative to its parent. Does nothing for another window type.
+   */
+  virtual window& setParentWindowId(unsigned long id) = 0;
+
+  /**
+   * The id of the window's own X11 window (GLX), 0 while it does not exist or for another window type. The program that
+   * declares things on the window (a depth limit read, the size one view is shown at) needs it.
+   */
+  [[nodiscard]] virtual unsigned long getNativeWindowId() = 0;
+
+  /**
    * Get the camera provided by the window.
    */
   [[nodiscard]] virtual camera& getCamera() = 0;

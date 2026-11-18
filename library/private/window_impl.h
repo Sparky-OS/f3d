@@ -50,6 +50,8 @@ public:
   bool isOffscreen() override;
   bool isStereo() override;
   stereo_depth_state pollStereoDepth(bool& changed) override;
+  window& setParentWindowId(unsigned long id) override;
+  unsigned long getNativeWindowId() override;
   window& setStereoImageEyeAngle(double degrees) override;
   camera& getCamera() override;
   bool render() override;

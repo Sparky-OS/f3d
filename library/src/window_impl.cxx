@@ -348,6 +348,46 @@ window::stereo_depth_state window_impl::pollStereoDepth(bool& changed)
 }
 
 //----------------------------------------------------------------------------
+window& window_impl::setParentWindowId(unsigned long id)
+{
+#ifdef VTK_USE_X
+  if (auto* glx = vtkF3DGLXRenderWindow::SafeDownCast(this->Internals->RenWin))
+  {
+    if (static_cast<unsigned long>(glx->GetParentId()) != id)
+    {
+      vtkRenderWindowInteractor* iren = glx->GetInteractor();
+      // a window that exists is created again under its new parent, as the stereo capable one is
+      const bool created = glx->GetWindowId() != 0;
+      if (created)
+      {
+        glx->Finalize();
+      }
+      glx->SetParentId(static_cast<Window>(id));
+      if (created && iren)
+      {
+        iren->ReInitialize();
+      }
+    }
+  }
+#else
+  (void)id;
+#endif
+  return *this;
+}
+
+//----------------------------------------------------------------------------
+unsigned long window_impl::getNativeWindowId()
+{
+#ifdef VTK_USE_X
+  if (auto* glx = vtkF3DGLXRenderWindow::SafeDownCast(this->Internals->RenWin))
+  {
+    return static_cast<unsigned long>(glx->GetWindowId());
+  }
+#endif
+  return 0;
+}
+
+//----------------------------------------------------------------------------
 bool window_impl::isOffscreen()
 {
   return !this->Internals->RenWin->GetShowWindow();
