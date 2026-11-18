@@ -9,6 +9,7 @@
 #include "utils.h"
 
 #include "F3DStyle.h"
+#include "depth_notice.h"
 #include "vtkF3DExternalRenderWindow.h"
 
 #include "vtkF3DGenericImporter.h"
@@ -55,6 +56,23 @@ namespace fs = std::filesystem;
 
 namespace f3d::detail
 {
+// In the edition's build (F3D_WITH_STEREO_DECLARE) the separation of a 3D window is the person's depth limits and nothing else:
+// render.stereo_eye_angle, from the command line, a configuration file or this API, is not used, and whoever sets it is told once
+static double ownEyeAngle(const options& opt, bool& given)
+{
+#ifdef F3D_WITH_STEREO_DECLARE
+  if (opt.render.stereo_eye_angle != 0.0 && !given)
+  {
+    given = true;
+    log::warn(depthFollowsDesktopNotice());
+  }
+  return 0.0;
+#else
+  (void)given;
+  return opt.render.stereo_eye_angle;
+#endif
+}
+
 class window_impl::internals
 {
 public:
@@ -108,6 +126,8 @@ public:
   vtkSmartPointer<vtkRenderWindow> RenWin;
   vtkNew<vtkF3DRenderer> Renderer;
   const options& Options;
+  double ImageEyeAngle = 0.0;
+  bool AngleNoticeGiven = false;
   window::stereo_depth_state DepthState = window::stereo_depth_state::UNUSED;
   double DepthSunk = 0.0;
   double DepthPopped = 0.0;
@@ -275,6 +295,13 @@ bool window_impl::isStereo()
 }
 
 //----------------------------------------------------------------------------
+window& window_impl::setStereoImageEyeAngle(double degrees)
+{
+  this->Internals->ImageEyeAngle = degrees;
+  return *this;
+}
+
+//----------------------------------------------------------------------------
 window::stereo_depth_state window_impl::pollStereoDepth(bool& changed)
 {
   changed = false;
@@ -284,7 +311,7 @@ window::stereo_depth_state window_impl::pollStereoDepth(bool& changed)
   double sunk = 0.0;
   double popped = 0.0;
   if (this->Internals->Options.render.stereo && renWin->GetStereoCapableWindow() &&
-    renWin->GetStereoRender() && this->Internals->Options.render.stereo_eye_angle == 0.0)
+    renWin->GetStereoRender() && ownEyeAngle(this->Internals->Options, this->Internals->AngleNoticeGiven) == 0.0)
   {
     switch (renderer->PollStereoDepthLimits())
     {
@@ -461,6 +488,8 @@ void window_impl::UpdateDynamicOptions()
   renderer->UpdateLights();
 
   const options& opt = this->Internals->Options;
+  // say once that a separation of the program's own is not used (edition's build), whatever the window is
+  (void)ownEyeAngle(opt, this->Internals->AngleNoticeGiven);
 
   // The window is realized when the engine is created, before the options are known, and a stereo
   // capable window can only be requested before it is realized, so it is recreated once
@@ -483,13 +512,15 @@ void window_impl::UpdateDynamicOptions()
     {
       // 3D can be switched on and off while the window runs: off draws one picture into both eyes
       renWin->SetStereoRender(opt.render.stereo ? 1 : 0);
-      renderer->SetStereoEyeAngle(opt.render.stereo_eye_angle);
+      renderer->SetStereoEyeAngle(ownEyeAngle(opt, this->Internals->AngleNoticeGiven));
     }
   }
   else if (opt.render.stereo)
   {
-    // An image has no stereo capable window: renderToImage draws the two eyes one after the other
-    renderer->SetStereoEyeAngle(opt.render.stereo_eye_angle);
+    // An image has no stereo capable window and no depth limits: renderToImage draws the two eyes one after the other, with the angle
+    // the program gave for images (setStereoImageEyeAngle), else the option where the build allows it
+    const double own = ownEyeAngle(opt, this->Internals->AngleNoticeGiven);
+    renderer->SetStereoEyeAngle(this->Internals->ImageEyeAngle != 0.0 ? this->Internals->ImageEyeAngle : own);
   }
 
   // Update pending up direction if changed

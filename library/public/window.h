@@ -66,7 +66,7 @@ public:
 
   /**
    * The state of the person's depth limits for a stereo window whose eye angle is not given
-   * (render.stereo_eye_angle is zero): the desktop (Stereo KWin) hands them over per window and
+   * (always in the edition's build, elsewhere when render.stereo_eye_angle is zero): the desktop (Stereo KWin) hands them over per window and
    * the separation of the two eyes follows them.
    * UNUSED: no stereo window, or an angle was given. DELIVERED: the limits are in use.
    * NOT_OFFERED: the compositor offers no limits. NOT_DELIVERED: offered, not delivered yet.
@@ -86,6 +86,14 @@ public:
    * limits are not what the previous call returned, so a program can render again and say why.
    */
   [[nodiscard]] virtual stereo_depth_state pollStereoDepth(bool& changed) = 0;
+
+  /**
+   * The angle between the eyes' lines of sight, in degrees, of the pair that renderToImage draws when render.stereo is on and the
+   * window is off screen. An image has no window, so no depth limits to follow; this is a program's own value, never an option a
+   * person can set (the on-screen window always follows the person's limits in the edition's build). Zero, the default, draws
+   * two equal pictures.
+   */
+  virtual window& setStereoImageEyeAngle(double degrees) = 0;
 
   /**
    * Get the camera provided by the window.

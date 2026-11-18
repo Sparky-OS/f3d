@@ -96,6 +96,11 @@ add_library(libf3d
   ${F3D_SOURCE_FILES}
   )
 
+if(F3D_WITH_STEREO_DECLARE)
+  # the person's depth limits are the only separation of a 3D window: render.stereo_eye_angle is not used
+  target_compile_definitions(libf3d PRIVATE F3D_WITH_STEREO_DECLARE)
+endif()
+
 target_include_directories(libf3d
   PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/public>
